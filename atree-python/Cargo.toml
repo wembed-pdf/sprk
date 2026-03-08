@@ -1,0 +1,13 @@
+[package]
+name = "atree-python"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "atree"
+crate-type = ["cdylib"]
+
+[dependencies]
+atree = { version = "0.1.0", path = ".." }
+pyo3 = { version = "0.28", features = ["extension-module"] }
+numpy = "0.28"

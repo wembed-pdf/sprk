@@ -1,0 +1,9 @@
+[workspace]
+members = [".", "atree-ffi", "atree-python"]
+
+[package]
+name = "atree"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
