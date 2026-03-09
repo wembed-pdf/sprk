@@ -231,7 +231,7 @@ impl<const D: usize> ATree<D> {
 
         let min = d_pos[0].floor();
         let slack = d_pos.len() - nodes.len();
-        let max = d_pos.iter().rev().nth(slack).unwrap().ceil();
+        let max = d_pos.iter().rev().nth(slack).unwrap_or(&min).ceil();
         let resolution = 50. / (max - min);
 
         let mut lut = vec![];
