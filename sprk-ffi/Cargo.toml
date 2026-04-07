@@ -1,7 +1,14 @@
 [package]
 name = "sprk-ffi"
-version = "0.1.0"
-edition = "2024"
+description = "C/C++ bindings for the SPRK-tree spatial index"
+readme = "README.md"
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
 
 [lib]
 crate-type = ["cdylib", "staticlib"]
