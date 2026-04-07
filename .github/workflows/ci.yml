@@ -39,9 +39,6 @@ jobs:
 
   semver:
     runs-on: ubuntu-latest
-    # Only run semver checks when there's a published baseline to compare against.
-    # Remove this `if` after the first crates.io release.
-    if: false
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
