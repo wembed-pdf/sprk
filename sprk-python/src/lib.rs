@@ -3,25 +3,25 @@ use numpy::{PyArray1, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods}
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-use ::atree::{ATree as ATreeRust, DynATree};
+use ::sprk::{Sprk as SprkRust, DynSprk};
 
 enum Inner {
-    D2(ATreeRust<2>),
-    D3(ATreeRust<3>),
-    D4(ATreeRust<4>),
-    D5(ATreeRust<5>),
-    D6(ATreeRust<6>),
-    D7(ATreeRust<7>),
-    D8(ATreeRust<8>),
-    D9(ATreeRust<9>),
-    D10(ATreeRust<10>),
-    D11(ATreeRust<11>),
-    D12(ATreeRust<12>),
-    D13(ATreeRust<13>),
-    D14(ATreeRust<14>),
-    D15(ATreeRust<15>),
-    D16(ATreeRust<16>),
-    Dyn(DynATree<f32, u32>),
+    D2(SprkRust<2>),
+    D3(SprkRust<3>),
+    D4(SprkRust<4>),
+    D5(SprkRust<5>),
+    D6(SprkRust<6>),
+    D7(SprkRust<7>),
+    D8(SprkRust<8>),
+    D9(SprkRust<9>),
+    D10(SprkRust<10>),
+    D11(SprkRust<11>),
+    D12(SprkRust<12>),
+    D13(SprkRust<13>),
+    D14(SprkRust<14>),
+    D15(SprkRust<15>),
+    D16(SprkRust<16>),
+    Dyn(DynSprk<f32, u32>),
 }
 
 fn build_vecs<const D: usize>(positions: ArrayView2<f32>) -> Vec<[f32; D]> {
@@ -44,13 +44,13 @@ fn build_vecs_flat<'a>(positions: &'a ArrayView2<'a, f32>) -> &'a [f32] {
 macro_rules! create_inner {
     ($positions:expr, $dim:expr, $($d:literal => $variant:ident),+ $(,)?) => {
         match $dim {
-            $($d => Inner::$variant(ATreeRust::new(build_vecs::<$d>($positions).as_slice())),)+
-            d => Inner::Dyn(DynATree::new(d, build_vecs_flat(&$positions))),
+            $($d => Inner::$variant(SprkRust::new(build_vecs::<$d>($positions).as_slice())),)+
+            d => Inner::Dyn(DynSprk::new(d, build_vecs_flat(&$positions))),
         }
     };
 }
 
-fn query_radius_inner<const D: usize>(tree: &ATreeRust<D>, pos: &[f32], radius: f64) -> Vec<u64> {
+fn query_radius_inner<const D: usize>(tree: &SprkRust<D>, pos: &[f32], radius: f64) -> Vec<u64> {
     let mut components = [0.0f32; D];
     for (i, &v) in pos.iter().enumerate().take(D) {
         components[i] = v;
@@ -60,7 +60,7 @@ fn query_radius_inner<const D: usize>(tree: &ATreeRust<D>, pos: &[f32], radius: 
     tree.query_radius(&dvec, radius as f32, &mut results);
     results
 }
-fn query_radius_inner_dyn(tree: &DynATree<f32, u32>, pos: &[f32], radius: f64) -> Vec<u64> {
+fn query_radius_inner_dyn(tree: &DynSprk<f32, u32>, pos: &[f32], radius: f64) -> Vec<u64> {
     let mut results = Vec::new();
     tree.query_radius(&pos, radius as f32, &mut results);
     results
@@ -90,14 +90,14 @@ macro_rules! dispatch_query {
 }
 
 #[pyclass]
-struct ATree {
+struct Sprk {
     inner: Inner,
     dim: usize,
     point_count: usize,
 }
 
 #[pymethods]
-impl ATree {
+impl Sprk {
     #[new]
     fn new(positions: PyReadonlyArray2<f32>) -> Self {
         let shape = positions.shape();
@@ -112,7 +112,7 @@ impl ATree {
             15 => D15, 16 => D16,
         );
 
-        ATree {
+        Sprk {
             inner,
             dim,
             point_count: num_points,
@@ -150,7 +150,7 @@ impl ATree {
 }
 
 #[pymodule]
-fn atree(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<ATree>()?;
+fn sprk(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<Sprk>()?;
     Ok(())
 }

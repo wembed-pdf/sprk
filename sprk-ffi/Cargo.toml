@@ -1,5 +1,5 @@
 [package]
-name = "atree-ffi"
+name = "sprk-ffi"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,4 +7,4 @@ edition = "2024"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-atree = { version = "0.1.0", path = ".." }
+sprk = { version = "0.1.0", path = ".." }

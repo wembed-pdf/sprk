@@ -1,54 +1,54 @@
 use std::ffi::c_void;
 use std::slice;
 
-use atree::{ATree, DynATree};
+use sprk::{Sprk, DynSprk};
 
-// Type-erased handle storing an ATree<D> behind a void pointer
+// Type-erased handle storing a Sprk<D> behind a void pointer
 #[repr(C)]
-pub struct ATreeHandle {
+pub struct SprkHandle {
     inner: *mut c_void,
     dim: usize,
     point_count: usize,
     drop_fn: unsafe fn(*mut c_void),
 }
 
-unsafe fn drop_atree<const D: usize>(ptr: *mut c_void) {
-    drop(unsafe { Box::from_raw(ptr as *mut ATree<D>) });
+unsafe fn drop_sprk<const D: usize>(ptr: *mut c_void) {
+    drop(unsafe { Box::from_raw(ptr as *mut Sprk<D>) });
 }
-unsafe fn drop_dyn_atree(ptr: *mut c_void) {
-    drop(unsafe { Box::from_raw(ptr as *mut DynATree<f32, u64>) });
+unsafe fn drop_dyn_sprk(ptr: *mut c_void) {
+    drop(unsafe { Box::from_raw(ptr as *mut DynSprk<f32, u64>) });
 }
 
-fn create_typed<const D: usize>(positions: &[f32], num_points: usize) -> *mut ATreeHandle {
+fn create_typed<const D: usize>(positions: &[f32], num_points: usize) -> *mut SprkHandle {
     let mut vecs = Vec::with_capacity(num_points);
     for i in 0..num_points {
         let mut components = [0.0f32; D];
         components.copy_from_slice(&positions[i * D..(i + 1) * D]);
         vecs.push(components);
     }
-    let tree = Box::new(ATree::<D, 8, f32, u32>::new(vecs.as_slice()));
-    let handle = Box::new(ATreeHandle {
+    let tree = Box::new(Sprk::<D, 8, f32, u32>::new(vecs.as_slice()));
+    let handle = Box::new(SprkHandle {
         inner: Box::into_raw(tree) as *mut c_void,
         dim: D,
         point_count: num_points,
-        drop_fn: drop_atree::<D>,
+        drop_fn: drop_sprk::<D>,
     });
     Box::into_raw(handle)
 }
 
-fn create_dyn(d: usize, positions: &[f32], num_points: usize) -> *mut ATreeHandle {
-    let tree = Box::new(DynATree::<f32, u32>::new(d, positions));
-    let handle = Box::new(ATreeHandle {
+fn create_dyn(d: usize, positions: &[f32], num_points: usize) -> *mut SprkHandle {
+    let tree = Box::new(DynSprk::<f32, u32>::new(d, positions));
+    let handle = Box::new(SprkHandle {
         inner: Box::into_raw(tree) as *mut c_void,
         dim: d,
         point_count: num_points,
-        drop_fn: drop_dyn_atree,
+        drop_fn: drop_dyn_sprk,
     });
     Box::into_raw(handle)
 }
 
-fn query_radius_typed<const D: usize>(handle: &ATreeHandle, pos: &[f32], radius: f64) -> Vec<u64> {
-    let tree = unsafe { &*(handle.inner as *const ATree<D>) };
+fn query_radius_typed<const D: usize>(handle: &SprkHandle, pos: &[f32], radius: f64) -> Vec<u64> {
+    let tree = unsafe { &*(handle.inner as *const Sprk<D>) };
     let mut components = [0.0f32; D];
     components.copy_from_slice(&pos[..D]);
     let dvec = components;
@@ -56,8 +56,8 @@ fn query_radius_typed<const D: usize>(handle: &ATreeHandle, pos: &[f32], radius:
     tree.query_radius(&dvec, radius as f32, &mut results);
     results
 }
-fn query_radius_dyn(_d: usize, handle: &ATreeHandle, pos: &[f32], radius: f64) -> Vec<u64> {
-    let tree = unsafe { &*(handle.inner as *const DynATree<f32, u64>) };
+fn query_radius_dyn(_d: usize, handle: &SprkHandle, pos: &[f32], radius: f64) -> Vec<u64> {
+    let tree = unsafe { &*(handle.inner as *const DynSprk<f32, u64>) };
     let mut results = Vec::new();
     tree.query_radius(pos, radius as f32, &mut results);
     results
@@ -93,15 +93,15 @@ macro_rules! dispatch {
 
 // --- C API ---
 
-/// Create an ATree from a flat array of positions.
+/// Create a SPRK-tree from a flat array of positions.
 /// `positions` must point to `num_points * dim` floats.
 /// Returns NULL if dim is outside [2, 16].
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn atree_create(
+pub unsafe extern "C" fn sprk_create(
     positions: *const f32,
     num_points: usize,
     dim: usize,
-) -> *mut ATreeHandle {
+) -> *mut SprkHandle {
     if dim < 2 || dim > 16 || positions.is_null() {
         return std::ptr::null_mut();
     }
@@ -109,9 +109,9 @@ pub unsafe extern "C" fn atree_create(
     dispatch!(dim, create_typed, create_dyn, data, num_points)
 }
 
-/// Destroy an ATree handle and free its memory.
+/// Destroy a SPRK-tree handle and free its memory.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn atree_destroy(handle: *mut ATreeHandle) {
+pub unsafe extern "C" fn sprk_destroy(handle: *mut SprkHandle) {
     if handle.is_null() {
         return;
     }
@@ -120,10 +120,10 @@ pub unsafe extern "C" fn atree_destroy(handle: *mut ATreeHandle) {
 }
 
 /// Query all points within `radius` of `pos`, allocating the result array.
-/// Caller must free with `atree_free_results`.
+/// Caller must free with `sprk_free_results`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn atree_query_radius(
-    handle: *const ATreeHandle,
+pub unsafe extern "C" fn sprk_query_radius(
+    handle: *const SprkHandle,
     pos: *const f32,
     radius: f64,
     out_ids: *mut *mut u64,
@@ -148,9 +148,9 @@ pub unsafe extern "C" fn atree_query_radius(
     std::mem::forget(results);
 }
 
-/// Free a result array allocated by `atree_query_radius_alloc`.
+/// Free a result array allocated by `sprk_query_radius`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn atree_free_results(ids: *mut u64, count: usize) {
+pub unsafe extern "C" fn sprk_free_results(ids: *mut u64, count: usize) {
     if !ids.is_null() && count > 0 {
         drop(unsafe { Vec::from_raw_parts(ids, count, count) });
     }
@@ -158,12 +158,12 @@ pub unsafe extern "C" fn atree_free_results(ids: *mut u64, count: usize) {
 
 /// Return the dimensionality of the tree.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn atree_dim(handle: *const ATreeHandle) -> usize {
+pub unsafe extern "C" fn sprk_dim(handle: *const SprkHandle) -> usize {
     unsafe { (*handle).dim }
 }
 
 /// Return the number of points in the tree.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn atree_point_count(handle: *const ATreeHandle) -> usize {
+pub unsafe extern "C" fn sprk_point_count(handle: *const SprkHandle) -> usize {
     unsafe { (*handle).point_count }
 }
