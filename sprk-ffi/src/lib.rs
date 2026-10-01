@@ -1,7 +1,7 @@
 use std::ffi::c_void;
 use std::slice;
 
-use sprk::{Sprk, DynSprk};
+use sprk::{DynSprk, Sprk};
 
 // Type-erased handle storing a Sprk<D> behind a void pointer
 #[repr(C)]
@@ -102,7 +102,7 @@ pub unsafe extern "C" fn sprk_create(
     num_points: usize,
     dim: usize,
 ) -> *mut SprkHandle {
-    if dim < 2 || dim > 16 || positions.is_null() {
+    if dim < 2 || positions.is_null() {
         return std::ptr::null_mut();
     }
     let data = unsafe { slice::from_raw_parts(positions, num_points * dim) };

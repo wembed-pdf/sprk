@@ -14,7 +14,7 @@ typedef struct SprkHandle SprkHandle;
  * Create a SPRK-tree from a flat array of positions.
  * @param positions  Flat array of num_points * dim floats (row-major).
  * @param num_points Number of points.
- * @param dim        Dimensionality (must be in [2, 16]).
+ * @param dim        Dimensionality (must be larger than 1).
  * @return Handle to the tree, or NULL on error.
  */
 SprkHandle* sprk_create(const float* positions, size_t num_points, size_t dim);
